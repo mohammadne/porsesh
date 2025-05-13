@@ -6,5 +6,6 @@ CREATE TABLE votes (
     PRIMARY KEY (user_id, poll_id)
 );
 
-CREATE INDEX idx_votes_user_id ON votes (user_id);
-CREATE INDEX idx_votes_option_id ON votes (option_id);
+CREATE INDEX idx_votes_user_id ON votes (user_id); -- check user's vote and populate feed
+CREATE INDEX idx_votes_option_id ON votes (option_id); -- 
+CREATE INDEX idx_votes_user_acted_at ON votes (user_id, acted_at); -- check daily vote limits
