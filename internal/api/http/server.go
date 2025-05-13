@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/mohammadne/porsesh/internal/api/http/handlers"
+	"github.com/mohammadne/porsesh/internal/usecases"
 )
 
 type Server struct {
@@ -21,7 +22,7 @@ type Server struct {
 	requestApp *fiber.App
 }
 
-func New(log *zap.Logger) *Server {
+func New(log *zap.Logger, feeds usecases.Feeds, pools usecases.Polls) *Server {
 	server := &Server{logger: log}
 
 	{ // monitoring handlers
@@ -35,8 +36,7 @@ func New(log *zap.Logger) *Server {
 		server.requestApp = fiber.New(fiber.Config{})
 
 		apiGroup := server.requestApp.Group("api/v1")
-		// middlewares.NewLanguage(apiGroup, log)
-		handlers.NewPoll(apiGroup, log)
+		handlers.NewPoll(apiGroup, log, feeds, pools)
 	}
 
 	return server

@@ -13,6 +13,7 @@ import (
 	"github.com/mohammadne/porsesh/cmd"
 	"github.com/mohammadne/porsesh/internal/api/http"
 	"github.com/mohammadne/porsesh/internal/config"
+	"github.com/mohammadne/porsesh/internal/usecases"
 	"github.com/mohammadne/porsesh/pkg/observability/logger"
 )
 
@@ -39,12 +40,16 @@ func main() {
 		}
 	}
 
+	// usecases
+	feeds := usecases.NewFeeds(logger)
+	pools := usecases.NewPolls(logger)
+
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	var wg sync.WaitGroup
 
 	wg.Add(1)
-	go http.New(logger).Serve(ctx, &wg, *monitorPort, *requestPort)
+	go http.New(logger, feeds, pools).Serve(ctx, &wg, *monitorPort, *requestPort)
 
 	<-ctx.Done()
 	wg.Wait()
