@@ -33,13 +33,13 @@ type Tag struct {
 }
 
 var (
-	errInsertingTag                = errors.New("error inserting url")
-	ErrRetrievingLastInsertedTagID = errors.New("")
+	errInsertingTag = errors.New("error inserting url")
 )
 
 const queryCreateTag = `
 INSERT INTO tags (name)
-VALUES (?)`
+VALUES (?)
+RETURNING id`
 
 func (c *tags) CreateTags(ctx context.Context, tx *sqlx.Tx, tags []Tag) (idsMap map[string]int64, err error) {
 	defer func(start time.Time) {
@@ -53,16 +53,13 @@ func (c *tags) CreateTags(ctx context.Context, tx *sqlx.Tx, tags []Tag) (idsMap 
 
 	idsMap = make(map[string]int64, len(tags))
 	for _, tag := range tags {
-		result, err := tx.ExecContext(ctx, queryCreateTag, tag.Name)
+		var id int64
+		err := tx.QueryRowContext(ctx, queryCreateTag, tag.Name).Scan(&id)
 		if err != nil {
 			if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == postgres.UniqueConstraintViolatedCode {
 				continue
 			}
 			return nil, errors.Join(errInsertingTag, err)
-		}
-		id, err := result.LastInsertId()
-		if err != nil {
-			return nil, errors.Join(ErrRetrievingLastInsertedTagID, err)
 		}
 		idsMap[tag.Name] = id
 	}
@@ -71,8 +68,6 @@ func (c *tags) CreateTags(ctx context.Context, tx *sqlx.Tx, tags []Tag) (idsMap 
 }
 
 var (
-	// errInsertingTag                = errors.New("error inserting url")
-	// ErrRetrievingLastInsertedTagID = errors.New("")
 	errPrepareGetTagsByNamesQuery   = errors.New("errPrepareGetTagsByNamesQuery")
 	errGetTagsByNames               = errors.New("")
 	errScanningTagInGetTagsByNames  = errors.New("")

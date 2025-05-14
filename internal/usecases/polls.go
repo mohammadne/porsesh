@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"slices"
+	"sync"
 
 	"github.com/mohammadne/porsesh/internal/entities"
 	"github.com/mohammadne/porsesh/internal/repository/storage"
@@ -18,8 +19,13 @@ type Polls interface {
 	Statistics(ctx context.Context, v entities.PollID) (*entities.PollStatistics, error)
 }
 
-func NewPolls(logger *zap.Logger) Polls {
-	return &pools{logger: logger}
+func NewPolls(logger *zap.Logger, ps storage.Polls, ts storage.Tags, vs storage.Votes) Polls {
+	return &pools{
+		logger:       logger,
+		pollsStorage: ps,
+		tagsStorage:  ts,
+		votesStorage: vs,
+	}
 }
 
 type pools struct {
@@ -46,7 +52,7 @@ func (p *pools) CreatePoll(ctx context.Context, poll *entities.Poll) (err error)
 
 	}
 
-	tx, err := p.pollsStorage.RetrieveTransaction(ctx)
+	tx, err := p.pollsStorage.StartTransaction(ctx)
 	if err != nil {
 		return err
 	}
@@ -125,8 +131,11 @@ func (p *pools) CreatePoll(ctx context.Context, poll *entities.Poll) (err error)
 
 var (
 	ErrInvalidVotePollArguments = errors.New("")
+	ErrDailyUserVotesLimit      = errors.New("")
 	ErrVotePollPollNotExists    = errors.New("")
 )
+
+const dailyUserVoteLimits = 100
 
 func (p *pools) VotePoll(ctx context.Context, pollID entities.PollID, u entities.UserID, index int) error {
 	{ // validation
@@ -135,14 +144,23 @@ func (p *pools) VotePoll(ctx context.Context, pollID entities.PollID, u entities
 		}
 	}
 
+	count, err := p.votesStorage.GetCurrentDateUserVoteCount(ctx, int64(u))
+	if err != nil { // log but continue
+		p.logger.Error("error retrieving user daily count", zap.Int64("user_id", int64(u)), zap.Error(err))
+	}
+
+	if count >= dailyUserVoteLimits {
+		return ErrDailyUserVotesLimit
+	}
+
 	storageOptions, err := p.pollsStorage.GetPollOptionsByPollID(ctx, int64(pollID))
 	if err != nil {
 		return err
+	} else if len(storageOptions) == 0 {
+		return ErrVotePollPollNotExists
 	}
 
-	if len(storageOptions) == 0 {
-		return ErrVotePollPollNotExists
-	} else if len(storageOptions)-1 < index {
+	if len(storageOptions)-1 < index {
 		return ErrInvalidVotePollArguments
 	}
 
@@ -184,9 +202,55 @@ func (p *pools) SkipPoll(ctx context.Context, pollID entities.PollID, u entities
 }
 
 var (
-	ErrStatisticsPollNotExists = errors.New("")
+	ErrInvalidStatisticsArguments = errors.New("")
+	ErrStatisticsPollNotExists    = errors.New("")
 )
 
-func (p *pools) Statistics(ctx context.Context, v entities.PollID) (*entities.PollStatistics, error) {
-	return nil, nil
+func (p *pools) Statistics(ctx context.Context, pollID entities.PollID) (result *entities.PollStatistics, err error) {
+	{ // validation
+		if pollID < 0 {
+			return nil, ErrInvalidStatisticsArguments
+		}
+	}
+
+	result = &entities.PollStatistics{PoolID: pollID}
+
+	// todo: retrieve from cache
+
+	storageOptions, err := p.pollsStorage.GetPollOptionsByPollID(ctx, int64(pollID))
+	if err != nil {
+		return nil, err
+	} else if len(storageOptions) == 0 {
+		return nil, ErrStatisticsPollNotExists
+	}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	wg.Add(len(storageOptions))
+
+	for _, so := range storageOptions {
+		go func(so *storage.PollOption) {
+			defer wg.Done()
+
+			count, err := p.pollsStorage.GetPollOptionCount(ctx, so.ID)
+			if err != nil {
+				p.logger.Error("error counting options", zap.Int64("option_id", so.ID), zap.Error(err))
+				return
+			}
+
+			mu.Lock()
+			result.Votes = append(result.Votes, entities.PollStatisticsVote{
+				Option: so.Content, Count: count,
+			})
+			mu.Unlock()
+		}(&so)
+	}
+
+	wg.Wait()
+
+	go func() {
+		// todo: cache the result
+	}()
+
+	return result, nil
 }

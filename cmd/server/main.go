@@ -13,7 +13,9 @@ import (
 	"github.com/mohammadne/porsesh/cmd"
 	"github.com/mohammadne/porsesh/internal/api/http"
 	"github.com/mohammadne/porsesh/internal/config"
+	"github.com/mohammadne/porsesh/internal/repository/storage"
 	"github.com/mohammadne/porsesh/internal/usecases"
+	"github.com/mohammadne/porsesh/pkg/databases/postgres"
 	"github.com/mohammadne/porsesh/pkg/observability/logger"
 )
 
@@ -41,9 +43,18 @@ func main() {
 		}
 	}
 
+	postgres, err := postgres.Open(cfg.Postgres, config.Namespace, config.System)
+	if err != nil {
+		log.Fatalf("failed to initialize Postgres: \n%v", err)
+	}
+
+	pollsStorage := storage.NewPools(zap.NewNop(), postgres)
+	tagsStorage := storage.NewTags(zap.NewNop(), postgres)
+	votesStorage := storage.NewVotes(zap.NewNop(), postgres)
+
 	// usecases
 	feeds := usecases.NewFeeds(logger)
-	pools := usecases.NewPolls(logger)
+	pools := usecases.NewPolls(logger, pollsStorage, tagsStorage, votesStorage)
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -57,5 +68,6 @@ func main() {
 }
 
 type Config struct {
-	Logger *logger.Config `required:"true"`
+	Logger   *logger.Config   `required:"true"`
+	Postgres *postgres.Config `required:"true"`
 }

@@ -90,7 +90,7 @@ func (s *poll) retrieveFeed(c fiber.Ctx) error {
 		return response.Write(c, fiber.StatusBadRequest)
 	}
 
-	feed, err := s.feeds.RetrieveUserFeed(c.Context(), params.UserID, params.Tag, params.Page, params.Limit)
+	feed, err := s.feeds.GetUserFeed(c.Context(), params.UserID, params.Tag, params.Page, params.Limit)
 	if err != nil {
 		s.logger.Error("error while retrieving user feed", zap.Error(err))
 		if errors.Is(err, usecases.ErrInvalidSkipPollArguments) {
@@ -130,6 +130,9 @@ func (s *poll) vote(c fiber.Ctx) error {
 		s.logger.Error("error while vote a pool", zap.Error(err))
 		if errors.Is(err, usecases.ErrInvalidVotePollArguments) {
 			return response.Write(c, http.StatusBadRequest)
+		}
+		if errors.Is(err, usecases.ErrDailyUserVotesLimit) {
+			return response.Write(c, http.StatusForbidden)
 		}
 		if errors.Is(err, usecases.ErrVotePollPollNotExists) {
 			return response.Write(c, http.StatusNotFound)

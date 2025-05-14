@@ -24,8 +24,10 @@ type PollTag struct {
 
 type PollStatistics struct {
 	PoolID PollID
-	Votes  []struct {
-		Option string
-		Count  int
-	}
+	Votes  []PollStatisticsVote
+}
+
+type PollStatisticsVote struct {
+	Option string
+	Count  uint64
 }
