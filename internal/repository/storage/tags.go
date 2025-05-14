@@ -33,12 +33,12 @@ type Tag struct {
 }
 
 var (
-	errInsertingTag = errors.New("error inserting url")
+	errInsertingTag = errors.New("error inserting tag")
 )
 
 const queryCreateTag = `
 INSERT INTO tags (name)
-VALUES (?)
+VALUES ($1)
 RETURNING id`
 
 func (c *tags) CreateTags(ctx context.Context, tx *sqlx.Tx, tags []Tag) (idsMap map[string]int64, err error) {

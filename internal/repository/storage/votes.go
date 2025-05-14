@@ -13,7 +13,8 @@ import (
 )
 
 type Votes interface {
-	CreateVote(ctx context.Context, vote *Vote) (id int64, err error)
+	CreateVote(ctx context.Context, vote *Vote) (err error)
+	GetPollOptionVotesCount(ctx context.Context, optionID int64) (result uint64, err error)
 	GetCurrentDateUserVoteCount(ctx context.Context, userID int64) (result int64, err error)
 }
 
@@ -39,11 +40,10 @@ var (
 )
 
 const queryCreateVote = `
-INSERT INTO votes (user_id, poll_id, option_id, created_at)
-VALUES ($1, $2, $3, $4)
-RETURNING id`
+INSERT INTO votes (user_id, poll_id, option_id, acted_at)
+VALUES ($1, $2, $3, $4)`
 
-func (v *votes) CreateVote(ctx context.Context, vote *Vote) (id int64, err error) {
+func (v *votes) CreateVote(ctx context.Context, vote *Vote) (err error) {
 	defer func(start time.Time) {
 		if err != nil {
 			v.db.Vectors.Counter.IncrementVector("votes", "create_vote", metrics.StatusFailure)
@@ -53,16 +53,47 @@ func (v *votes) CreateVote(ctx context.Context, vote *Vote) (id int64, err error
 		v.db.Vectors.Histogram.ObserveResponseTime(start, "votes", "create_vote")
 	}(time.Now())
 
-	err = v.db.QueryRowContext(ctx, queryCreateVote,
-		vote.UserID, vote.PollID, vote.OptionID, time.Now()).Scan(&id)
+	_, err = v.db.ExecContext(ctx, queryCreateVote,
+		vote.UserID, vote.PollID, vote.OptionID, time.Now())
 	if err != nil {
 		if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == postgres.ForeignKeyViolatedCode {
-			return -1, ErrCreateVotePollNotExists
+			return ErrCreateVotePollNotExists
 		}
-		return -1, errors.Join(ErrInsertingVote, err)
+		return errors.Join(ErrInsertingVote, err)
 	}
 
-	return id, nil
+	return nil
+}
+
+var (
+	errQueryGetPollOptionCount = errors.New("")
+)
+
+const queryGetPollOptionCount = `
+SELECT COUNT(*) AS vote_count
+FROM votes
+WHERE option_id = $1
+GROUP BY option_id`
+
+func (v *votes) GetPollOptionVotesCount(ctx context.Context, optionID int64) (result uint64, err error) {
+	defer func(start time.Time) {
+		if err != nil {
+			v.db.Vectors.Counter.IncrementVector("votes", "get_poll_option_votes_count", metrics.StatusFailure)
+			return
+		}
+		v.db.Vectors.Counter.IncrementVector("votes", "get_poll_option_votes_count", metrics.StatusSuccess)
+		v.db.Vectors.Histogram.ObserveResponseTime(start, "votes", "get_poll_option_votes_count")
+	}(time.Now())
+
+	err = v.db.QueryRowContext(ctx, queryGetPollOptionCount, optionID).Scan(&result)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		return 0, errors.Join(errQueryGetPollOptionCount, err)
+	}
+
+	return result, nil
 }
 
 var (
@@ -72,7 +103,7 @@ var (
 const queryGetCurrentDateUserVoteCount = `
 SELECT COUNT(*) 
 FROM votes 
-WHERE user_id = ? AND acted_at::date = CURRENT_DATE`
+WHERE user_id = $1 AND acted_at::date = CURRENT_DATE`
 
 func (v *votes) GetCurrentDateUserVoteCount(ctx context.Context, userID int64) (result int64, err error) {
 	defer func(start time.Time) {

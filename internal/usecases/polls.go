@@ -170,7 +170,7 @@ func (p *pools) VotePoll(ctx context.Context, pollID entities.PollID, u entities
 
 	nullableOption := sql.NullInt64{Valid: true, Int64: storageOptions[index].ID}
 	storagePoll := storage.Vote{UserID: int64(u), PollID: int64(pollID), OptionID: nullableOption}
-	if _, err := p.votesStorage.CreateVote(ctx, &storagePoll); err != nil {
+	if err := p.votesStorage.CreateVote(ctx, &storagePoll); err != nil {
 		return err
 	}
 
@@ -189,9 +189,9 @@ func (p *pools) SkipPoll(ctx context.Context, pollID entities.PollID, u entities
 		}
 	}
 
-	nullableOption := sql.NullInt64{Valid: true}
+	nullableOption := sql.NullInt64{Valid: false}
 	storagePoll := storage.Vote{UserID: int64(u), PollID: int64(pollID), OptionID: nullableOption}
-	if _, err := p.votesStorage.CreateVote(ctx, &storagePoll); err != nil {
+	if err := p.votesStorage.CreateVote(ctx, &storagePoll); err != nil {
 		if errors.Is(err, storage.ErrCreateVotePollNotExists) {
 			return ErrSkipPollPollNotExists
 		}
@@ -232,7 +232,7 @@ func (p *pools) Statistics(ctx context.Context, pollID entities.PollID) (result 
 		go func(so *storage.PollOption) {
 			defer wg.Done()
 
-			count, err := p.pollsStorage.GetPollOptionCount(ctx, so.ID)
+			count, err := p.votesStorage.GetPollOptionVotesCount(ctx, so.ID)
 			if err != nil {
 				p.logger.Error("error counting options", zap.Int64("option_id", so.ID), zap.Error(err))
 				return

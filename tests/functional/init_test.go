@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	err error
+
 	// usecases
 	feedsUsecase usecases.Feeds
 	pollsUsecase usecases.Polls
@@ -26,8 +28,6 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	var err error
-
 	cfg := struct {
 		Logger   *logger.Config   `required:"true"`
 		Postgres *postgres.Config `required:"true"`

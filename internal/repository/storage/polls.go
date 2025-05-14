@@ -18,7 +18,6 @@ type Polls interface {
 
 	CreatePollOptions(ctx context.Context, tx *sqlx.Tx, pollID int64, options []PollOption) (err error)
 	GetPollOptionsByPollID(ctx context.Context, pollID int64) (result []PollOption, err error)
-	GetPollOptionCount(ctx context.Context, optionID int64) (result uint64, err error)
 
 	CreatePollTags(ctx context.Context, tx *sqlx.Tx, pollID int64, tagIDs []int64) (err error)
 }

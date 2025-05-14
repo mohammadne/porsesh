@@ -16,7 +16,7 @@ var (
 
 const queryCreatePollOptions = `
 INSERT INTO poll_options (poll_id, content, sort)
-VALUES (?, ?, ?)`
+VALUES ($1, $2, $3)`
 
 type PollOption struct {
 	ID      int64
@@ -54,7 +54,7 @@ var (
 const queryGetPollOptionsByPollID = `
 SELECT id, poll_id, content, sort
 FROM poll_options
-WHERE poll_id = ?`
+WHERE poll_id = $1`
 
 func (c *polls) GetPollOptionsByPollID(ctx context.Context, pollID int64) (result []PollOption, err error) {
 	defer func(start time.Time) {
@@ -90,35 +90,4 @@ func (c *polls) GetPollOptionsByPollID(ctx context.Context, pollID int64) (resul
 
 	return result, nil
 
-}
-
-var (
-	errQueryGetPollOptionCount = errors.New("")
-)
-
-const queryGetPollOptionCount = `
-SELECT option_id, COUNT(*) AS vote_count
-FROM votes
-WHERE option_id = ?
-GROUP BY option_id`
-
-func (c *polls) GetPollOptionCount(ctx context.Context, optionID int64) (result uint64, err error) {
-	defer func(start time.Time) {
-		if err != nil {
-			c.db.Vectors.Counter.IncrementVector("polls", "get_poll_option_count", metrics.StatusFailure)
-			return
-		}
-		c.db.Vectors.Counter.IncrementVector("polls", "get_poll_option_count", metrics.StatusSuccess)
-		c.db.Vectors.Histogram.ObserveResponseTime(start, "polls", "get_poll_option_count")
-	}(time.Now())
-
-	err = c.db.QueryRowContext(ctx, queryGetPollOptionCount, optionID).Scan(&result)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return 0, nil
-		}
-		return 0, errors.Join(errQueryGetPollOptionCount, err)
-	}
-
-	return result, nil
 }

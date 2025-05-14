@@ -14,8 +14,8 @@ var (
 )
 
 const queryCreatePollTag = `
-INSERT INTO poll_options (poll_id, tag_id)
-VALUES (?, ?)`
+INSERT INTO poll_tags (poll_id, tag_id)
+VALUES ($1, $2)`
 
 type PollTag struct {
 	ID   uint64
