@@ -36,7 +36,7 @@ func (c *polls) CreatePollOptions(ctx context.Context, tx *sqlx.Tx, pollID int64
 	}(time.Now())
 
 	for _, option := range options {
-		_, err := c.db.ExecContext(ctx, queryCreatePollOptions, pollID, option.Content, option.Sort)
+		_, err := tx.ExecContext(ctx, queryCreatePollOptions, pollID, option.Content, option.Sort)
 		if err != nil {
 			return errors.Join(ErrInsertingPollOption, err)
 		}

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 	"github.com/mohammadne/porsesh/pkg/databases/postgres"
 	"github.com/mohammadne/porsesh/pkg/observability/metrics"
 	"go.uber.org/zap"
@@ -39,6 +38,7 @@ var (
 const queryCreateTag = `
 INSERT INTO tags (name)
 VALUES ($1)
+ON CONFLICT (name) DO NOTHING
 RETURNING id`
 
 func (c *tags) CreateTags(ctx context.Context, tx *sqlx.Tx, tags []Tag) (idsMap map[string]int64, err error) {
@@ -56,7 +56,7 @@ func (c *tags) CreateTags(ctx context.Context, tx *sqlx.Tx, tags []Tag) (idsMap 
 		var id int64
 		err := tx.QueryRowContext(ctx, queryCreateTag, tag.Name).Scan(&id)
 		if err != nil {
-			if pgErr, ok := err.(*pq.Error); ok && pgErr.Code == postgres.UniqueConstraintViolatedCode {
+			if errors.Is(err, sql.ErrNoRows) {
 				continue
 			}
 			return nil, errors.Join(errInsertingTag, err)

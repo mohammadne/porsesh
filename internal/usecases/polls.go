@@ -56,13 +56,7 @@ func (p *pools) CreatePoll(ctx context.Context, poll *entities.Poll) (err error)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		} else {
-			err = tx.Commit()
-		}
-	}()
+	defer tx.Rollback()
 
 	storagePoll := storage.Poll{
 		UserID: int64(poll.UserID),
@@ -122,6 +116,11 @@ func (p *pools) CreatePoll(ctx context.Context, poll *entities.Poll) (err error)
 	}
 
 	err = p.pollsStorage.CreatePollTags(ctx, tx, pollID, tagIds)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}

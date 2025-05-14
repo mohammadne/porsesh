@@ -33,7 +33,7 @@ func (c *polls) CreatePollTags(ctx context.Context, tx *sqlx.Tx, pollID int64, t
 	}(time.Now())
 
 	for _, tagID := range tagIDs {
-		_, err := c.db.ExecContext(ctx, queryCreatePollTag, pollID, tagID)
+		_, err := tx.ExecContext(ctx, queryCreatePollTag, pollID, tagID)
 		if err != nil {
 			return errors.Join(ErrInsertingPollTag, err)
 		}

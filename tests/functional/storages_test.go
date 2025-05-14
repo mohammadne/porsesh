@@ -91,8 +91,8 @@ func TestStorageTags(t *testing.T) {
 		}
 
 		mapIds, err := tagsStorage.CreateTags(context.TODO(), tx, []storage.Tag{
-			{Name: "tag1"},
-			{Name: "tag2"},
+			{Name: "tag20"},
+			{Name: "tag30"},
 		})
 		if err != nil {
 			t.Fatalf("create tag has error %s", err.Error())
