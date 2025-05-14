@@ -81,7 +81,29 @@ func (s *poll) createPoll(c fiber.Ctx) error {
 func (s *poll) retrieveFeed(c fiber.Ctx) error {
 	response := &models.Response{}
 
-	return response.Write(c, http.StatusInternalServerError)
+	params := models.RetrieveFeedRequestParams{}
+	if err := mapstructure.Decode(c.Queries(), &params); err != nil {
+		s.logger.Error("invalid query parameters", zap.Error(err))
+		return response.Write(c, fiber.StatusBadRequest)
+	} else if params.UserID <= 0 {
+		s.logger.Error("user-id in parameters should be given", zap.Error(err))
+		return response.Write(c, fiber.StatusBadRequest)
+	}
+
+	feed, err := s.feeds.RetrieveUserFeed(c.Context(), params.UserID, params.Tag, params.Page, params.Limit)
+	if err != nil {
+		s.logger.Error("error while retrieving user feed", zap.Error(err))
+		if errors.Is(err, usecases.ErrInvalidSkipPollArguments) {
+			return response.Write(c, http.StatusBadRequest)
+		}
+		if errors.Is(err, usecases.ErrSkipPollPollNotExists) {
+			return response.Write(c, http.StatusNotFound)
+		}
+		return response.Write(c, http.StatusInternalServerError)
+	}
+
+	response.Data = feed
+	return response.Write(c, http.StatusOK)
 }
 
 func (s *poll) vote(c fiber.Ctx) error {

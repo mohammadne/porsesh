@@ -1,6 +1,6 @@
 CREATE TABLE polls (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT REFERENCES users(id),
+    user_id BIGINT,
     title TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT now()
 );

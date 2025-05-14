@@ -1,5 +1,5 @@
 CREATE TABLE votes (
-    user_id BIGINT REFERENCES users(id),
+    user_id BIGINT,
     poll_id BIGINT REFERENCES polls(id) ON DELETE CASCADE,
     option_id BIGINT REFERENCES poll_options(id) ON DELETE CASCADE, -- NULL means skipped
     acted_at TIMESTAMP DEFAULT now(),

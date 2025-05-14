@@ -14,12 +14,12 @@ type CreatePollRequest struct {
 	Tags    []string `json:"tags"`
 }
 
-// RetrievePoll
+// RetrieveFeed
 
-type RetrievePollRequestParams struct {
-	Tag    string          `json:"userId"`
-	Page   int             `json:"userId"`
-	Limit  int             `json:"userId"`
+type RetrieveFeedRequestParams struct {
+	Tag    string          `json:"tag"`
+	Page   int             `json:"page"`
+	Limit  int             `json:"limit"`
 	UserID entities.UserID `json:"userId"`
 }
 

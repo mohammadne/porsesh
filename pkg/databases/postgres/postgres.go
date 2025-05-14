@@ -67,3 +67,7 @@ func Open(cfg *Config, namespace, subsystem string) (*Postgres, error) {
 
 	return r, nil
 }
+
+const (
+	UniqueConstraintViolatedCode = "23505"
+)

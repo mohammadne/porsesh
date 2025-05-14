@@ -1,5 +1,5 @@
 CREATE TABLE feeds (
-    user_id BIGINT NOT NULL REFERENCES users(id),
+    user_id BIGINT NOT NULL,
     poll_id BIGINT NOT NULL REFERENCES polls(id),
     added_at TIMESTAMP DEFAULT now(),
     expires_at TIMESTAMP NOT NULL,

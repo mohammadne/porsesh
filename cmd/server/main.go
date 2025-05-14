@@ -23,6 +23,7 @@ func main() {
 	environmentRaw := flag.String("environment", "", "The environment (default: local)")
 	flag.Parse() // Parse the command-line flags
 
+	var cfg Config
 	if err := config.Load(&cfg, *environmentRaw); err != nil {
 		log.Panicf("failed to load config: \n%v", err)
 	}
@@ -53,4 +54,8 @@ func main() {
 
 	<-ctx.Done()
 	wg.Wait()
+}
+
+type Config struct {
+	Logger *logger.Config `required:"true"`
 }

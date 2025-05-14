@@ -1,3 +1,4 @@
 -- 
+DROP TABLE IF EXISTS poll_tags;
 DROP TABLE IF EXISTS poll_options;
 DROP TABLE IF EXISTS polls;

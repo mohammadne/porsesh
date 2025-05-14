@@ -3,6 +3,6 @@ package entities
 // type VoteID uint64
 
 type Vote struct {
-	UserID UserID
+	UserID uint64
 	PollID PollID
 }

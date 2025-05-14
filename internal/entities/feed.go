@@ -1,4 +1,3 @@
 package entities
 
-type Feed struct {
-}
+type Feed []Poll

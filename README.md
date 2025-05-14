@@ -8,3 +8,17 @@
 > Porsesh is a Persian word that means "question" — a fitting name for a compact yet powerful Polling platform.
 
 The tiny polling platform
+
+## Usage
+
+### Local
+
+```sh
+# run dependencies
+cd hacks/compose && podman compose -f compose.local.yml up -d
+
+# run migration files
+go run cmd/migration/* --direction=up
+
+
+```

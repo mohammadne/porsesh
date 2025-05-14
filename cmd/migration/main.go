@@ -14,10 +14,11 @@ import (
 var files embed.FS
 
 func main() {
-	direction := flag.String("direction", "", "Either 'UP' or 'DOWN'")
+	direction := flag.String("direction", "", "Either 'up' or 'down'")
 	environmentRaw := flag.String("environment", "", "The environment (default: local)")
 	flag.Parse() // Parse the command-line flags
 
+	var cfg Config
 	if err := config.Load(&cfg, *environmentRaw); err != nil {
 		log.Panicf("failed to load config: \n%v", err)
 	}
@@ -34,4 +35,8 @@ func main() {
 	}
 
 	log.Println("database has been migrated")
+}
+
+type Config struct {
+	Postgres *postgres.Config `required:"true"`
 }
