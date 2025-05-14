@@ -69,5 +69,6 @@ func Open(cfg *Config, namespace, subsystem string) (*Postgres, error) {
 }
 
 const (
+	ForeignKeyViolatedCode       = "23503"
 	UniqueConstraintViolatedCode = "23505"
 )

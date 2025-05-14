@@ -1,3 +1,3 @@
 package entities
 
-type UserID uint64
+type UserID int64

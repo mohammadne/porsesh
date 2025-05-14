@@ -12,9 +12,13 @@ type Feeds interface {
 }
 
 func NewFeeds(logger *zap.Logger) Feeds {
-	return nil
+	return &feeds{logger: logger}
 }
 
 type feeds struct {
 	logger *zap.Logger
+}
+
+func (f *feeds) RetrieveUserFeed(ctx context.Context, userID entities.UserID, tag string, page, limit int) (entities.Feed, error) {
+	return nil, nil
 }

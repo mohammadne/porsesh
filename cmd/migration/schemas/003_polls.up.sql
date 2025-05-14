@@ -8,7 +8,8 @@ CREATE TABLE polls (
 CREATE TABLE poll_options (
     id BIGSERIAL PRIMARY KEY,
     poll_id BIGINT REFERENCES polls(id) ON DELETE CASCADE,
-    content TEXT NOT NULL
+    content TEXT NOT NULL,
+    sort INT NOT NULL
 );
 
 CREATE INDEX idx_poll_options_poll_id ON poll_options (poll_id);
