@@ -81,6 +81,16 @@ func TestStoragePolls(t *testing.T) {
 		tx.Commit()
 		fmt.Println(id)
 	})
+
+	t.Run("list_polls", func(t *testing.T) {
+		polls, err := pollsStorage.ListPollsByTag(context.TODO(), creatorUserID, 0, 0, 0)
+		if err != nil {
+			t.Fatalf("list polls has error %s", err.Error())
+		}
+
+		bytes, _ := json.MarshalIndent(polls, "", "  ")
+		fmt.Println(string(bytes))
+	})
 }
 
 func TestStorageTags(t *testing.T) {

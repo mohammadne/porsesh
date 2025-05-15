@@ -89,5 +89,4 @@ func (c *polls) GetPollOptionsByPollID(ctx context.Context, pollID int64) (resul
 	}
 
 	return result, nil
-
 }

@@ -18,7 +18,8 @@ The tiny polling platform
 cd hacks/compose && podman compose -f compose.local.yml up -d
 
 # run migration files
-go run cmd/migration/* --direction=up
+go run cmd/migration/main.go --direction=up
 
-
+# run server
+go run cmd/server/main.go
 ```

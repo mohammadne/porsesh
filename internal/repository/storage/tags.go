@@ -15,6 +15,7 @@ import (
 type Tags interface {
 	CreateTags(ctx context.Context, tx *sqlx.Tx, tags []Tag) (ids map[string]int64, err error)
 	GetTagsByNames(ctx context.Context, tx *sqlx.Tx, names []string) (result []Tag, err error)
+	GetTagByName(ctx context.Context, name string) (result *Tag, err error)
 }
 
 func NewTags(lg *zap.Logger, database *postgres.Postgres) Tags {
@@ -115,6 +116,37 @@ func (c *tags) GetTagsByNames(ctx context.Context, tx *sqlx.Tx, names []string) 
 	}
 	if rows.Err() != nil {
 		return nil, errors.Join(errScanningTagsInGetTagsByNames, err)
+	}
+
+	return result, nil
+}
+
+var (
+	errGetTagByName = errors.New("")
+)
+
+const queryGetTagByName = `
+SELECT ID, NAME
+FROM tags
+WHERE NAME = $1`
+
+func (c *tags) GetTagByName(ctx context.Context, name string) (result *Tag, err error) {
+	defer func(start time.Time) {
+		if err != nil {
+			c.db.Vectors.Counter.IncrementVector("tags", "get_tag_by_name", metrics.StatusFailure)
+			return
+		}
+		c.db.Vectors.Counter.IncrementVector("tags", "get_tag_by_name", metrics.StatusSuccess)
+		c.db.Vectors.Histogram.ObserveResponseTime(start, "tags", "get_tag_by_name")
+	}(time.Now())
+
+	result = new(Tag)
+	err = c.db.QueryRowContext(ctx, queryGetTagByName, name).Scan(&result.ID, &result.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, errors.Join(errGetTagByName, err)
 	}
 
 	return result, nil
